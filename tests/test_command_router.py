@@ -3,7 +3,6 @@
 from unittest.mock import Mock
 
 import pytest
-
 from codemux.command_router import CommandRouter
 
 

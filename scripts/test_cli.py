@@ -9,7 +9,6 @@ from rich.console import Console
 # Add src to path for development
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from codemux.cli import CodemuxCLI
 from codemux.command_router import CommandRouter
 from codemux.tmux_controller import TmuxController
 

@@ -102,7 +102,9 @@ class CommandRouter:
             if session_id:
                 return self.handle_session_command(session_id, command)
             else:
-                return "Please specify a session first (use #sessionName) or check status"
+                return (
+                    "Please specify a session first (use #sessionName) or check status"
+                )
 
         return "Unknown command"
 
@@ -118,7 +120,9 @@ class CommandRouter:
         status_list = []
         for name, data in self.sessions.items():
             current_indicator = "* " if name == self.current_session else "  "
-            status_list.append(f"{current_indicator}{name}: {data.get('status', 'unknown')}")
+            status_list.append(
+                f"{current_indicator}{name}: {data.get('status', 'unknown')}"
+            )
 
         return f"Active sessions ({len(self.sessions)}):\n" + "\n".join(status_list)
 

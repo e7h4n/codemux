@@ -21,7 +21,9 @@ class CodemuxCLI:
 
     def start(self) -> NoReturn:
         """Start the interactive CLI session."""
-        self.console.print("\n[bold cyan]Codemux - Voice-controlled tmux management[/bold cyan]")
+        self.console.print(
+            "\n[bold cyan]Codemux - Voice-controlled tmux management[/bold cyan]"
+        )
         self.console.print("[dim]Type 'help' for commands, 'quit' to exit[/dim]\n")
 
         # Discover sessions on startup
