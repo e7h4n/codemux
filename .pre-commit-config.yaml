@@ -5,12 +5,12 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-  
+
   - repo: https://github.com/DetachHead/basedpyright
     rev: v1.10.0
     hooks:
       - id: basedpyright
-  
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:

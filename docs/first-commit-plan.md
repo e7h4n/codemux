@@ -77,7 +77,7 @@ def is_running_claude(self, pane):
     cmd = pane.cmd('display', '-p', '#{pane_current_command}').stdout
     if 'claude' in cmd.lower():
         return True
-    
+
     # Check process tree for more accuracy
     # This handles cases where claude is run through shell
     return False
@@ -90,11 +90,11 @@ def generate_session_name(self, pane):
     hostname = socket.gethostname()
     current_path = pane.current_path
     dirname = os.path.basename(current_path)
-    
+
     # Handle edge cases
     if not dirname or dirname == '/':
         dirname = 'root'
-    
+
     return f"{hostname}_{dirname}"
 ```
 

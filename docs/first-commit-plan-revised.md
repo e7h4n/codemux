@@ -28,12 +28,12 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-  
+
   - repo: https://github.com/DetachHead/basedpyright
     rev: v1.10.0
     hooks:
       - id: basedpyright
-  
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -60,25 +60,25 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install uv
       uses: astral-sh/setup-uv@v2
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python pin ${{ matrix.python-version }}
-    
+
     - name: Install dependencies
       run: uv sync --dev
-    
+
     - name: Run pre-commit
       run: uv run pre-commit run --all-files
-    
+
     - name: Run tests
       run: uv run pytest -v --cov=codemux --cov-report=xml
-    
+
     - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
@@ -100,29 +100,29 @@ from libtmux.pane import Pane
 
 class TmuxController:
     """Controller for discovering and managing tmux sessions."""
-    
+
     def __init__(self) -> None:
         """Initialize tmux controller."""
         self.server: Server = libtmux.Server()
         self.hostname: str = socket.gethostname()
-    
+
     def discover_claude_sessions(self) -> List[Dict[str, Any]]:
         """Discover all tmux sessions running Claude Code.
-        
+
         Returns:
             List of session information dictionaries.
         """
         sessions = []
-        
+
         for session in self.server.sessions:
             for window in session.windows:
                 for pane in window.panes:
                     if self._is_running_claude(pane):
                         session_info = self._create_session_info(session, pane)
                         sessions.append(session_info)
-        
+
         return sessions
-    
+
     def _is_running_claude(self, pane: Pane) -> bool:
         """Check if pane is running Claude Code."""
         try:
@@ -131,12 +131,12 @@ class TmuxController:
             return 'claude' in str(cmd).lower()
         except Exception:
             return False
-    
+
     def _create_session_info(self, session: Session, pane: Pane) -> Dict[str, Any]:
         """Create session information dictionary."""
         current_path = pane.current_path
         dirname = current_path.split('/')[-1] if current_path else 'unknown'
-        
+
         return {
             'name': f"{self.hostname}_{dirname}",
             'tmux_session_name': session.name,

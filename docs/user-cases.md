@@ -61,10 +61,10 @@ Active sessions (4):
 **Patterns**:
 1. **Current session**: "run npm test"
    - Sends to currently active session
-   
+
 2. **Specific session**: "#backend npm build"
    - Routes to backend session regardless of current active session
-   
+
 3. **Voice with numbers**: When Claude Code shows options (1/2/3)
    - User says "1" or "one"
    - Codemux sends "1" to the session
@@ -77,7 +77,7 @@ Active sessions (4):
    - Show full output in chat interface
    - Display response time
    - Keep latest output visible
-   
+
 2. **Away from Computer (Voice)**:
    - Summarize long outputs using Claude API
    - Focus on key results and actions taken
