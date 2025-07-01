@@ -15,7 +15,7 @@
                 <h1><i class="fas fa-terminal"></i> Codemux Dashboard</h1>
                 <div class="status-indicator">
                     <span class="status-dot" :class="serverStatus"></span>
-                    <span>{{ serverStatusText }}</span>
+                    <span>{% raw %}{{ serverStatusText }}{% endraw %}</span>
                 </div>
             </div>
         </header>
@@ -29,7 +29,7 @@
                         <i class="fas fa-desktop"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value">{{ stats.clients }}</div>
+                        <div class="stat-value">{% raw %}{{ stats.clients }}{% endraw %}</div>
                         <div class="stat-label">Connected Clients</div>
                     </div>
                 </div>
@@ -39,7 +39,7 @@
                         <i class="fas fa-code"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value">{{ stats.sessions }}</div>
+                        <div class="stat-value">{% raw %}{{ stats.sessions }}{% endraw %}</div>
                         <div class="stat-label">Active Sessions</div>
                     </div>
                 </div>
@@ -49,7 +49,7 @@
                         <i class="fas fa-heartbeat"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value">{{ serverInfo.heartbeat_interval }}s</div>
+                        <div class="stat-value">{% raw %}{{ serverInfo.heartbeat_interval }}{% endraw %}s</div>
                         <div class="stat-label">Heartbeat Interval</div>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value">{{ serverInfo.heartbeat_timeout }}s</div>
+                        <div class="stat-value">{% raw %}{{ serverInfo.heartbeat_timeout }}{% endraw %}s</div>
                         <div class="stat-label">Heartbeat Timeout</div>
                     </div>
                 </div>
@@ -95,6 +95,7 @@
                     </div>
 
                     <div v-else class="clients-grid">
+{% raw %}
                         <div v-for="client in clients" :key="client.id" class="client-card">
                             <div class="client-header">
                                 <div class="client-title">
@@ -124,6 +125,7 @@
                                 </div>
                             </div>
                         </div>
+{% endraw %}
                     </div>
                 </div>
 
@@ -153,6 +155,7 @@
                                 </tr>
                             </thead>
                             <tbody>
+{% raw %}
                                 <tr v-for="session in sessions" :key="session.name">
                                     <td>
                                         <div class="session-name">
@@ -171,6 +174,7 @@
                                         </button>
                                     </td>
                                 </tr>
+{% endraw %}
                             </tbody>
                         </table>
                     </div>
@@ -183,14 +187,17 @@
                             <label for="session-select">Target Session:</label>
                             <select id="session-select" v-model="selectedSession">
                                 <option value="">Select a session...</option>
+{% raw %}
                                 <option v-for="session in sessions" :key="session.name" :value="session.name">
                                     {{ session.name }} ({{ session.client_hostname }})
                                 </option>
+{% endraw %}
                             </select>
                         </div>
                     </div>
 
                     <div class="terminal-output" ref="terminalOutput">
+{% raw %}
                         <div v-for="entry in terminalHistory" :key="entry.id" class="terminal-entry">
                             <div class="command-header">
                                 <span class="session-tag">{{ entry.session }}</span>
@@ -210,6 +217,7 @@
                                 <pre>{{ entry.error }}</pre>
                             </div>
                         </div>
+{% endraw %}
                     </div>
 
                     <div class="terminal-input">

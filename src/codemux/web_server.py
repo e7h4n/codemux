@@ -46,8 +46,22 @@ class WebUI:
         @self.app.get("/", response_class=HTMLResponse)
         async def dashboard(request: Request):
             """Main dashboard page."""
+            # Get initial data for template
+            client_count = len(self.codemux_server.clients)
+            session_count = sum(
+                len(c.sessions) for c in self.codemux_server.clients.values()
+            )
+
             return self.templates.TemplateResponse(
-                "dashboard.html", {"request": request}
+                "dashboard.html",
+                {
+                    "request": request,
+                    "stats": {"clients": client_count, "sessions": session_count},
+                    "serverInfo": {
+                        "heartbeat_interval": self.codemux_server.heartbeat_interval,
+                        "heartbeat_timeout": self.codemux_server.heartbeat_timeout,
+                    },
+                },
             )
 
         @self.app.get("/api/status")
@@ -298,5 +312,10 @@ async def main():
         logger.info("Server shutting down...")
 
 
-if __name__ == "__main__":
+def main_sync():
+    """Synchronous entry point for web server script."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    main_sync()

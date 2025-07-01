@@ -31,8 +31,8 @@ dependencies = [
 [project.scripts]
 codemux = "codemux.cli:main"
 codemux-server = "codemux.server_cli:main"
-codemux-client = "codemux.client:main"
-codemux-web = "codemux.web_server:main"
+codemux-client = "codemux.client:main_sync"
+codemux-web = "codemux.web_server:main_sync"
 
 [project.optional-dependencies]
 dev = [
