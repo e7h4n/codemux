@@ -62,8 +62,11 @@ class CodemuxClient:
             try:
                 logger.info(f"Connecting to {self.server_url}...")
 
-                # Simple direct connection without proxy issues
-                async with websockets.connect(self.server_url) as websocket:
+                # Direct connection with proxy explicitly disabled
+                async with websockets.connect(
+                    self.server_url,
+                    proxy=None  # Explicitly disable proxy to avoid detection issues
+                ) as websocket:
                     self.websocket = websocket
                     logger.info("Connected to server successfully")
 
@@ -71,12 +74,18 @@ class CodemuxClient:
                     if self.auth_token:
                         await self._authenticate()
 
+                    # Start message handler first, then register
+                    message_task = asyncio.create_task(self._handle_messages())
+                    
+                    # Give a moment for message handler to start
+                    await asyncio.sleep(0.1)
+                    
                     # Register client
                     await self._register()
 
-                    # Start background tasks
+                    # Start other background tasks
                     tasks = [
-                        asyncio.create_task(self._handle_messages()),
+                        message_task,
                         asyncio.create_task(self._monitor_sessions()),
                         asyncio.create_task(self._heartbeat_loop()),
                     ]
@@ -160,6 +169,7 @@ class CodemuxClient:
 
             if msg.type == MessageType.REGISTER_ACK:
                 self.heartbeat_interval = msg.data.get("heartbeat_interval", 30)
+                logger.info("Registration acknowledged")
 
             elif msg.type == MessageType.EXECUTE_COMMAND:
                 await self._handle_execute_command(msg)
@@ -265,18 +275,27 @@ class CodemuxClient:
 
     async def _heartbeat_loop(self):
         """Send periodic heartbeats to server."""
+        # Send initial heartbeat immediately
+        if self.websocket is not None and self.websocket.close_code is None:
+            heartbeat = ProtocolHelper.create_heartbeat(
+                self.client_id, len(self.sessions_cache)
+            )
+            await self._send_message(heartbeat)
+            logger.debug(f"Sent initial heartbeat")
+        
         while self.running:
             await asyncio.sleep(self.heartbeat_interval)
 
-            if self.websocket is not None and not self.websocket.closed:
+            if self.websocket is not None and self.websocket.close_code is None:
                 heartbeat = ProtocolHelper.create_heartbeat(
                     self.client_id, len(self.sessions_cache)
                 )
                 await self._send_message(heartbeat)
+                logger.debug(f"Sent heartbeat")
 
     async def _send_message(self, message: Message):
         """Send message to server."""
-        if self.websocket is not None and not self.websocket.closed:
+        if self.websocket is not None and self.websocket.close_code is None:
             await self.websocket.send(message.to_json())
         else:
             logger.warning("Cannot send message: not connected")

@@ -120,7 +120,6 @@ class TmuxController:
             "pane_id": pane.id,
             "current_path": current_path,
             "dirname": dirname,
-            "hostname": self.hostname,
         }
 
     def send_command(self, session_name: str, command: str) -> bool:

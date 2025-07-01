@@ -145,10 +145,17 @@ class CodemuxServer:
 
             # Update session list
             self._update_sessions()
+            
+            logger.info(f"Starting message loop for client {client_id}")
 
             # Handle messages from client
-            async for message in websocket:
-                await self._process_client_message(client, str(message))
+            try:
+                async for message in websocket:
+                    logger.debug(f"Received message from client {client_id}: {str(message)[:100]}")
+                    await self._process_client_message(client, str(message))
+            except websockets.exceptions.ConnectionClosed:
+                logger.info(f"Client {client_id} connection closed normally")
+                raise
 
         except websockets.exceptions.ConnectionClosed:  # type: ignore[attr-defined]
             logger.info(f"Client {client_id or 'unknown'} disconnected")
@@ -156,6 +163,8 @@ class CodemuxServer:
             logger.warning(f"Client {client_id or 'unknown'} registration timeout")
         except Exception as e:
             logger.error(f"Error handling client {client_id or 'unknown'}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
         finally:
             # Clean up client
             if client_id and client_id in self.clients:
