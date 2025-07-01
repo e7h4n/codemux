@@ -1,21 +1,29 @@
 """Command routing and session management."""
 
+import asyncio
 import re
 from typing import Any
 
+from codemux.output_processor import OutputProcessor
 from codemux.tmux_controller import TmuxController
 
 
 class CommandRouter:
     """Router for parsing and routing commands to tmux sessions."""
 
-    def __init__(self, tmux_controller: TmuxController) -> None:
+    def __init__(
+        self,
+        tmux_controller: TmuxController,
+        output_processor: OutputProcessor | None = None,
+    ) -> None:
         """Initialize command router.
 
         Args:
             tmux_controller: The tmux controller instance.
+            output_processor: Optional output processor. If None, creates one.
         """
         self.tmux = tmux_controller
+        self.output_processor = output_processor or OutputProcessor(tmux_controller)
         self.current_session: str | None = None
         self.sessions: dict[str, dict[str, Any]] = {}
 
@@ -83,7 +91,7 @@ class CommandRouter:
 
         return None
 
-    def route_command(self, user_input: str) -> str:
+    async def route_command(self, user_input: str) -> str:
         """Route command to appropriate handler.
 
         Args:
@@ -97,16 +105,32 @@ class CommandRouter:
         if command_type == "status_query":
             return self.handle_status_query()
         elif command_type == "session_command":
-            return self.handle_session_command(session_id, command)
+            return await self.handle_session_command(session_id, command)
         elif command_type == "current_session":
             if session_id:
-                return self.handle_session_command(session_id, command)
+                return await self.handle_session_command(session_id, command)
             else:
                 return (
                     "Please specify a session first (use #sessionName) or check status"
                 )
 
         return "Unknown command"
+
+    def route_command_sync(self, user_input: str) -> str:
+        """Synchronous wrapper for route_command.
+
+        Args:
+            user_input: The user's input string.
+
+        Returns:
+            Response message.
+        """
+        try:
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self.route_command(user_input))
+        except RuntimeError:
+            # No event loop running, create a new one
+            return asyncio.run(self.route_command(user_input))
 
     def handle_status_query(self) -> str:
         """Handle status query command.
@@ -126,7 +150,7 @@ class CommandRouter:
 
         return f"Active sessions ({len(self.sessions)}):\n" + "\n".join(status_list)
 
-    def handle_session_command(self, session_id: str | None, command: str) -> str:
+    async def handle_session_command(self, session_id: str | None, command: str) -> str:
         """Handle session command.
 
         Args:
@@ -152,9 +176,26 @@ class CommandRouter:
             # Just switching session
             return f"Switched to session '{matched_session}'"
 
-        # For now, just simulate sending the command
-        # In the future, this will send to tmux and wait for response
-        return f"[{matched_session}] Would execute: {command}"
+        # Send command to tmux and wait for response
+        try:
+            response_data = await self.output_processor.send_command_with_response(
+                matched_session, command
+            )
+
+            if response_data["success"]:
+                output = response_data["output"]
+                response_time = response_data["response_time"]
+                processed_output = self.output_processor.process_output(output)
+
+                return (
+                    f"[{matched_session}] (⏱️ {response_time:.1f}s)\n{processed_output}"
+                )
+            else:
+                error = response_data.get("error", "Unknown error")
+                return f"[{matched_session}] Error: {error}"
+
+        except Exception as e:
+            return f"[{matched_session}] Exception: {str(e)}"
 
     def update_sessions(self, sessions: list[dict[str, Any]]) -> None:
         """Update the sessions dictionary.

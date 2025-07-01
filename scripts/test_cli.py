@@ -41,7 +41,7 @@ def test_basic_functionality():
     ]
 
     for cmd in test_commands:
-        response = router.route_command(cmd)
+        response = router.route_command_sync(cmd)
         console.print(f"   [dim]>{cmd}[/dim] → {response}")
 
     console.print("\n[green]✓ Basic functionality test completed[/green]")

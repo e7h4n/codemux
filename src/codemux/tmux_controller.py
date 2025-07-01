@@ -66,6 +66,10 @@ class TmuxController:
                                 "do you trust the files",
                                 "claude.ai",
                                 "anthropic",
+                                "tips for getting started",
+                                "run /init to create",
+                                "use claude to help",
+                                "claude.md file",
                             ]
                             for indicator in claude_indicators:
                                 if indicator in content.lower():
@@ -88,14 +92,21 @@ class TmuxController:
         Returns:
             Dictionary containing session information.
         """
-        # Get current path - libtmux might not have this attribute in all versions
+        # Get current path using tmux command
         current_path = ""
         try:
-            path_attr = getattr(pane, "current_path", "")
-            if path_attr is not None:
-                current_path = str(path_attr)
+            # Try to get path from pane
+            result = pane.cmd("display", "-p", "#{pane_current_path}")
+            if result and result.stdout:
+                current_path = str(result.stdout[0]) if result.stdout else ""
         except Exception:
-            pass
+            # Fallback to getting path from pane attribute if available
+            try:
+                path_attr = getattr(pane, "current_path", "")
+                if path_attr is not None:
+                    current_path = str(path_attr)
+            except Exception:
+                pass
         dirname = os.path.basename(current_path) if current_path else "unknown"
 
         # Handle edge cases for directory name
@@ -111,3 +122,106 @@ class TmuxController:
             "dirname": dirname,
             "hostname": self.hostname,
         }
+
+    def send_command(self, session_name: str, command: str) -> bool:
+        """Send command to specified session.
+
+        Args:
+            session_name: The session name to send command to.
+            command: The command text to send.
+
+        Returns:
+            True if command was sent successfully, False otherwise.
+        """
+        try:
+            # Find the session by tmux session name
+            session_info = self._find_session_by_name(session_name)
+            if not session_info:
+                return False
+
+            # Get the session and pane
+            session = self.server.sessions.get(
+                session_name=session_info["tmux_session_name"]
+            )
+            if not session:
+                return False
+
+            # Find the pane running Claude Code
+            target_pane = None
+            for window in session.windows:
+                for pane in window.panes:
+                    if pane.id == session_info["pane_id"]:
+                        target_pane = pane
+                        break
+                if target_pane:
+                    break
+
+            if not target_pane:
+                return False
+
+            # Send the command
+            target_pane.send_keys(command)
+            return True
+
+        except Exception:
+            return False
+
+    def capture_screen(self, session_name: str) -> str:
+        """Capture screen content from specified session.
+
+        Args:
+            session_name: The session name to capture from.
+
+        Returns:
+            Screen content as string, empty if failed.
+        """
+        try:
+            # Find the session by name
+            session_info = self._find_session_by_name(session_name)
+            if not session_info:
+                return ""
+
+            # Get the session and pane
+            session = self.server.sessions.get(
+                session_name=session_info["tmux_session_name"]
+            )
+            if not session:
+                return ""
+
+            # Find the pane running Claude Code
+            target_pane = None
+            for window in session.windows:
+                for pane in window.panes:
+                    if pane.id == session_info["pane_id"]:
+                        target_pane = pane
+                        break
+                if target_pane:
+                    break
+
+            if not target_pane:
+                return ""
+
+            # Capture pane content
+            result = target_pane.cmd("capture-pane", "-p")
+            if result and result.stdout:
+                return "\n".join(result.stdout)
+
+        except Exception:
+            pass
+
+        return ""
+
+    def _find_session_by_name(self, session_name: str) -> dict[str, Any] | None:
+        """Find session info by session name.
+
+        Args:
+            session_name: The session name to find.
+
+        Returns:
+            Session info dictionary or None if not found.
+        """
+        sessions = self.discover_claude_sessions()
+        for session_info in sessions:
+            if session_info["name"] == session_name:
+                return session_info
+        return None

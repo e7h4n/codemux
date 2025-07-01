@@ -171,51 +171,98 @@ class TestCommandRouter:
 
     def test_handle_session_command_no_session(self, router):
         """Test session command with no session specified."""
-        result = router.handle_session_command(None, "test")
+        import asyncio
+
+        result = asyncio.run(router.handle_session_command(None, "test"))
         assert result == "No session specified"
 
     def test_handle_session_command_not_found(self, router_with_sessions):
         """Test session command with non-existent session."""
-        result = router_with_sessions.handle_session_command("nonexistent", "test")
+        import asyncio
+
+        result = asyncio.run(
+            router_with_sessions.handle_session_command("nonexistent", "test")
+        )
         assert "not found" in result
         assert "Available sessions:" in result
 
     def test_handle_session_command_switch_only(self, router_with_sessions):
         """Test session switching without command."""
-        result = router_with_sessions.handle_session_command("frontend", "")
+        import asyncio
+
+        result = asyncio.run(
+            router_with_sessions.handle_session_command("frontend", "")
+        )
 
         assert result == "Switched to session 'macbook_frontend'"
         assert router_with_sessions.current_session == "macbook_frontend"
 
     def test_handle_session_command_with_command(self, router_with_sessions):
         """Test session command with actual command."""
-        result = router_with_sessions.handle_session_command("backend", "npm test")
+        # For this test, we'll mock the output processor to avoid real tmux calls
+        from unittest.mock import AsyncMock
 
-        assert "Would execute: npm test" in result
+        router_with_sessions.output_processor.send_command_with_response = AsyncMock(
+            return_value={
+                "success": True,
+                "output": "test output",
+                "response_time": 1.0,
+            }
+        )
+
+        import asyncio
+
+        result = asyncio.run(
+            router_with_sessions.handle_session_command("backend", "npm test")
+        )
+
+        assert "test output" in result
         assert router_with_sessions.current_session == "macbook_backend"
 
     def test_route_command_status(self, router_with_sessions):
         """Test routing status query command."""
-        result = router_with_sessions.route_command("status")
+        result = router_with_sessions.route_command_sync("status")
         assert "Active sessions" in result
 
     def test_route_command_session_switch(self, router_with_sessions):
         """Test routing session switch command."""
-        result = router_with_sessions.route_command("switch to frontend")
+        result = router_with_sessions.route_command_sync("switch to frontend")
         assert "Switched to session 'macbook_frontend'" in result
 
     def test_route_command_hash_syntax(self, router_with_sessions):
         """Test routing #sessionId command."""
-        result = router_with_sessions.route_command("#backend npm start")
-        assert "Would execute: npm start" in result
+        # Mock the output processor for this test too
+        from unittest.mock import AsyncMock
+
+        router_with_sessions.output_processor.send_command_with_response = AsyncMock(
+            return_value={
+                "success": True,
+                "output": "npm start output",
+                "response_time": 0.5,
+            }
+        )
+
+        result = router_with_sessions.route_command_sync("#backend npm start")
+        assert "npm start output" in result
 
     def test_route_command_current_session_no_active(self, router_with_sessions):
         """Test routing to current session when none is active."""
-        result = router_with_sessions.route_command("npm test")
+        result = router_with_sessions.route_command_sync("npm test")
         assert "Please specify a session first" in result
 
     def test_route_command_current_session_with_active(self, router_with_sessions):
         """Test routing to current session when one is active."""
+        # Mock the output processor
+        from unittest.mock import AsyncMock
+
+        router_with_sessions.output_processor.send_command_with_response = AsyncMock(
+            return_value={
+                "success": True,
+                "output": "npm test output",
+                "response_time": 0.8,
+            }
+        )
+
         router_with_sessions.current_session = "macbook_frontend"
-        result = router_with_sessions.route_command("npm test")
-        assert "Would execute: npm test" in result
+        result = router_with_sessions.route_command_sync("npm test")
+        assert "npm test output" in result

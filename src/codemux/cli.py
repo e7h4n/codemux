@@ -53,7 +53,7 @@ class CodemuxCLI:
                         continue
 
                     # Process the command
-                    response = self.router.route_command(user_input)
+                    response = self.router.route_command_sync(user_input)
                     self.console.print(f"[blue]{response}[/blue]")
 
                 except KeyboardInterrupt:
