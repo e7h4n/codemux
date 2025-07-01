@@ -23,12 +23,16 @@ dependencies = [
     "rich>=13.7.0",
     "websockets>=12.0",
     "aiohttp>=3.9.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.scripts]
 codemux = "codemux.cli:main"
 codemux-server = "codemux.server_cli:main"
 codemux-client = "codemux.client:main"
+codemux-web = "codemux.web_server:main"
 
 [project.optional-dependencies]
 dev = [
@@ -76,7 +80,7 @@ ignore = [
 typeCheckingMode = "strict"
 pythonVersion = "3.11"
 include = ["src"]
-exclude = ["**/node_modules", "**/__pycache__", ".venv", "scripts", "src/codemux/cli.py", "src/codemux/server_cli.py", "tests", "typings"]
+exclude = ["**/node_modules", "**/__pycache__", ".venv", "scripts", "src/codemux/cli.py", "src/codemux/server_cli.py", "src/codemux/web_server.py", "tests", "typings"]
 stubPath = "typings"
 reportMissingImports = true
 reportMissingTypeStubs = false

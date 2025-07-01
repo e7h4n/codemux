@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codemux Dashboard</title>
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-terminal"></i> Codemux Dashboard</h1>
+                <div class="status-indicator">
+                    <span class="status-dot" :class="serverStatus"></span>
+                    <span>{{ serverStatusText }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ stats.clients }}</div>
+                        <div class="stat-label">Connected Clients</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ stats.sessions }}</div>
+                        <div class="stat-label">Active Sessions</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ serverInfo.heartbeat_interval }}s</div>
+                        <div class="stat-label">Heartbeat Interval</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ serverInfo.heartbeat_timeout }}s</div>
+                        <div class="stat-label">Heartbeat Timeout</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-button" :class="{active: activeTab === 'clients'}" @click="activeTab = 'clients'">
+                    <i class="fas fa-desktop"></i> Clients
+                </button>
+                <button class="tab-button" :class="{active: activeTab === 'sessions'}" @click="activeTab = 'sessions'">
+                    <i class="fas fa-code"></i> Sessions
+                </button>
+                <button class="tab-button" :class="{active: activeTab === 'terminal'}" @click="activeTab = 'terminal'">
+                    <i class="fas fa-terminal"></i> Terminal
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Clients Tab -->
+                <div v-if="activeTab === 'clients'" class="clients-tab">
+                    <div class="section-header">
+                        <h2>Connected Clients</h2>
+                        <button class="refresh-btn" @click="refreshData">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div v-if="clients.length === 0" class="empty-state">
+                        <i class="fas fa-desktop"></i>
+                        <p>No clients connected</p>
+                    </div>
+
+                    <div v-else class="clients-grid">
+                        <div v-for="client in clients" :key="client.id" class="client-card">
+                            <div class="client-header">
+                                <div class="client-title">
+                                    <i class="fas fa-desktop"></i>
+                                    <span>{{ client.hostname }}</span>
+                                </div>
+                                <div class="client-status" :class="getClientStatus(client)">
+                                    {{ getClientStatusText(client) }}
+                                </div>
+                            </div>
+                            <div class="client-details">
+                                <div class="detail-row">
+                                    <span class="label">Client ID:</span>
+                                    <span class="value">{{ client.id }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Platform:</span>
+                                    <span class="value">{{ client.platform }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Sessions:</span>
+                                    <span class="value">{{ client.sessions_count }}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Last Heartbeat:</span>
+                                    <span class="value">{{ formatTime(client.last_heartbeat) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sessions Tab -->
+                <div v-if="activeTab === 'sessions'" class="sessions-tab">
+                    <div class="section-header">
+                        <h2>Active Sessions</h2>
+                        <button class="refresh-btn" @click="refreshData">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+
+                    <div v-if="sessions.length === 0" class="empty-state">
+                        <i class="fas fa-code"></i>
+                        <p>No active sessions</p>
+                    </div>
+
+                    <div v-else class="sessions-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Session Name</th>
+                                    <th>Client</th>
+                                    <th>Path</th>
+                                    <th>Tmux Session</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="session in sessions" :key="session.name">
+                                    <td>
+                                        <div class="session-name">
+                                            <i class="fas fa-code"></i>
+                                            {{ session.name }}
+                                        </div>
+                                    </td>
+                                    <td>{{ session.client_hostname }}</td>
+                                    <td>
+                                        <code>{{ session.current_path }}</code>
+                                    </td>
+                                    <td>{{ session.tmux_session_name }}</td>
+                                    <td>
+                                        <button class="action-btn" @click="selectSession(session)">
+                                            <i class="fas fa-terminal"></i> Execute
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Terminal Tab -->
+                <div v-if="activeTab === 'terminal'" class="terminal-tab">
+                    <div class="terminal-header">
+                        <div class="session-selector">
+                            <label for="session-select">Target Session:</label>
+                            <select id="session-select" v-model="selectedSession">
+                                <option value="">Select a session...</option>
+                                <option v-for="session in sessions" :key="session.name" :value="session.name">
+                                    {{ session.name }} ({{ session.client_hostname }})
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="terminal-output" ref="terminalOutput">
+                        <div v-for="entry in terminalHistory" :key="entry.id" class="terminal-entry">
+                            <div class="command-header">
+                                <span class="session-tag">{{ entry.session }}</span>
+                                <span class="timestamp">{{ formatTime(entry.timestamp) }}</span>
+                                <span class="status" :class="entry.success ? 'success' : 'error'">
+                                    <i :class="entry.success ? 'fas fa-check' : 'fas fa-times'"></i>
+                                </span>
+                            </div>
+                            <div class="command-line">
+                                <span class="prompt">$</span>
+                                <span class="command">{{ entry.command }}</span>
+                            </div>
+                            <div v-if="entry.output" class="command-output">
+                                <pre>{{ entry.output }}</pre>
+                            </div>
+                            <div v-if="entry.error" class="command-error">
+                                <pre>{{ entry.error }}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="terminal-input">
+                        <div class="input-container">
+                            <span class="prompt">$</span>
+                            <input
+                                v-model="currentCommand"
+                                @keyup.enter="executeCommand"
+                                @keyup.up="historyUp"
+                                @keyup.down="historyDown"
+                                placeholder="Enter command to execute..."
+                                :disabled="!selectedSession"
+                                ref="commandInput"
+                            >
+                            <button
+                                @click="executeCommand"
+                                :disabled="!selectedSession || !currentCommand.trim()"
+                                class="execute-btn"
+                            >
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
