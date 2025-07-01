@@ -23,6 +23,9 @@ dependencies = [
     "rich>=13.7.0",
 ]
 
+[project.scripts]
+codemux = "codemux.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
@@ -69,7 +72,7 @@ ignore = [
 typeCheckingMode = "strict"
 pythonVersion = "3.11"
 include = ["src", "tests"]
-exclude = ["**/node_modules", "**/__pycache__", ".venv", "scripts"]
+exclude = ["**/node_modules", "**/__pycache__", ".venv", "scripts", "src/codemux/cli.py"]
 reportMissingImports = true
 reportMissingTypeStubs = false
 
