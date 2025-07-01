@@ -4,7 +4,7 @@ Voice-controlled tmux management for Claude Code sessions.
 
 ## Overview
 
-Codemux is a unified control platform that manages multiple Claude Code tmux sessions, providing voice and text interaction capabilities. It automatically discovers Claude Code sessions, routes commands intelligently, and provides an easy-to-use CLI interface.
+Codemux is a unified control platform that manages multiple Claude Code tmux sessions, providing voice and text interaction capabilities. It uses a client-server architecture where clients discover local Claude Code sessions and connect to a central server for unified control.
 
 ## Features
 
@@ -13,6 +13,9 @@ Codemux is a unified control platform that manages multiple Claude Code tmux ses
 - 🌏 **Multi-language**: Support for English and Chinese commands
 - 🔄 **Session Switching**: Easy switching between sessions with fuzzy matching
 - 📊 **Status Monitoring**: View all active sessions and current status
+- 🌐 **Client-Server Architecture**: WebSocket-based communication for distributed control
+- 💓 **Heartbeat Monitoring**: Automatic detection of disconnected clients
+- 🔐 **Optional Authentication**: Token-based authentication support
 
 ## Installation
 
@@ -28,10 +31,30 @@ uv run pre-commit install
 
 ## Usage
 
-### Interactive CLI
+### Server Mode
 
 ```bash
-# Start the interactive CLI
+# Start the server
+uv run codemux-server
+
+# Or specify host and port
+uv run codemux-server 0.0.0.0 8000
+```
+
+### Client Mode
+
+```bash
+# Start a client (connects to local server by default)
+uv run codemux-client
+
+# Or connect to remote server
+uv run codemux-client ws://server-host:8000/ws
+```
+
+### Standalone Mode (Legacy)
+
+```bash
+# Start the interactive CLI (local mode)
 uv run codemux
 
 # Or run directly

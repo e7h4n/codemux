@@ -4,6 +4,55 @@
 
 A tmux control platform that manages multiple Claude Code tmux sessions through tmuxp, providing a unified voice/text interaction interface. Users interact with multiple Claude Code instances through voice or text, while the system handles command routing and response aggregation.
 
+## 🔄 Architecture Evolution: Client-Server Model
+
+As of the latest implementation, Codemux has evolved from a pure local tool to a client-server architecture to enable distributed control across multiple machines:
+
+### Client-Server Architecture
+
+```
+┌─────────────────┐     WebSocket      ┌─────────────────┐
+│  Codemux Client │◄──────────────────►│  Codemux Server │
+│   (Machine A)   │                    │                 │
+└────────┬────────┘                    └────────┬────────┘
+         │                                      │
+         │ Local Control                        │ Unified Interface
+         ▼                                      ▼
+┌─────────────────┐                    ┌─────────────────┐
+│ tmux sessions   │                    │   Server CLI    │
+│ - claude_proj1  │                    │   Web API       │
+│ - claude_proj2  │                    │   Voice Input   │
+└─────────────────┘                    └─────────────────┘
+```
+
+**Components:**
+
+1. **Codemux Server** (`server.py`)
+   - WebSocket server listening on configurable port
+   - Manages client connections and session registry
+   - Routes commands to appropriate clients
+   - Provides unified control interface
+   - Heartbeat monitoring for connection health
+   - Optional token-based authentication
+
+2. **Codemux Client** (`client.py`)
+   - Discovers local Claude Code tmux sessions
+   - Connects to server via WebSocket
+   - Reports session changes to server
+   - Executes commands received from server
+   - Maintains heartbeat with server
+
+3. **WebSocket Protocol** (`protocol.py`)
+   - Message types and structures
+   - Protocol helpers for message creation
+   - Session information data structures
+
+4. **Server CLI** (`server_cli.py`)
+   - Interactive CLI for server management
+   - View connected clients and sessions
+   - Execute commands on remote sessions
+   - Monitor server status
+
 ### Core Value
 
 - **Unified Control**: One interface to manage multiple Claude Code sessions

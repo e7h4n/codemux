@@ -21,10 +21,14 @@ classifiers = [
 dependencies = [
     "libtmux>=0.33.0",
     "rich>=13.7.0",
+    "websockets>=12.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.scripts]
 codemux = "codemux.cli:main"
+codemux-server = "codemux.server_cli:main"
+codemux-client = "codemux.client:main"
 
 [project.optional-dependencies]
 dev = [
@@ -71,15 +75,21 @@ ignore = [
 [tool.basedpyright]
 typeCheckingMode = "strict"
 pythonVersion = "3.11"
-include = ["src", "tests"]
-exclude = ["**/node_modules", "**/__pycache__", ".venv", "scripts", "src/codemux/cli.py"]
+include = ["src"]
+exclude = ["**/node_modules", "**/__pycache__", ".venv", "scripts", "src/codemux/cli.py", "src/codemux/server_cli.py", "tests", "typings"]
+stubPath = "typings"
 reportMissingImports = true
 reportMissingTypeStubs = false
+reportMissingModuleSource = "warning"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers --cov=codemux"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "asyncio: marks tests as asyncio (deselect with '-m \"not asyncio\"')",
+]
 
 [tool.coverage.run]
 source = ["src/codemux"]
