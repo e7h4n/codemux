@@ -50,7 +50,28 @@ class TmuxController:
             if result and result.stdout:
                 # stdout is always a list
                 command = str(result.stdout[0]) if result.stdout else ""
-                return "claude" in command.lower()
+                if "claude" in command.lower():
+                    return True
+
+                # Check if it's a node process that might be Claude Code
+                if "node" in command.lower():
+                    # Check pane content for Claude Code indicators
+                    try:
+                        content_result = pane.cmd("capture-pane", "-p")
+                        if content_result and content_result.stdout:
+                            content = "\n".join(content_result.stdout)
+                            # Look for Claude Code specific text
+                            claude_indicators = [
+                                "claude code",
+                                "do you trust the files",
+                                "claude.ai",
+                                "anthropic",
+                            ]
+                            for indicator in claude_indicators:
+                                if indicator in content.lower():
+                                    return True
+                    except Exception:
+                        pass
         except Exception:
             # If we can't get the command, assume it's not Claude
             pass
