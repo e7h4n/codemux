@@ -34,14 +34,29 @@ User Input (Voice/Text)
 
 ### ✅ P0 - Core Control Features
 
-- **Session Discovery**: Scan tmux on startup, identify sessions running Claude Code
+- **Session Discovery**: Automatically scan tmux, identify sessions running Claude Code
+  - No batch startup needed - discovers manually created sessions
+  - Session naming: `{hostname}_{dirname}` format
+  - Continuous monitoring for new sessions
 - **Command Routing**:
   - Direct input → Send to current active session
   - #sessionId command → Send to specified session
+  - Fuzzy matching for session names (e.g., "frontend" matches "macbook_frontend")
 - **Response Capture**: Detect tmux screen changes, capture Claude Code output
-- **Output Processing**: Use Claude API to summarize long outputs, keep conversations concise
+  - 500ms polling interval for output detection
+  - Merge simultaneous outputs from multiple sessions
+- **Output Processing**: 
+  - Web interface: Show full output with timing
+  - Voice interface: Use Claude API to summarize long outputs
+  - Context-aware summarization based on user location
 - **Session Switching**: Support voice/text methods to switch current active session
-- **Status Query**: Status commands show current state of all sessions
+  - Natural language: "切换到 frontend 目录" or "switch to frontend"
+  - Maintains session context for subsequent commands
+- **Status Query**: Enhanced status showing:
+  - Idle/working state
+  - Git branch and repository status
+  - MR/PR status when applicable
+  - Summary of last interaction
 
 ### 🔶 P1 - Enhanced Interaction
 
@@ -68,10 +83,13 @@ User Input (Voice/Text)
 import tmuxp
 import asyncio
 import time
+import socket
+import os
 
 class TmuxController:
     def __init__(self):
         self.server = tmuxp.Server()
+        self.hostname = socket.gethostname()
         
     def discover_claude_sessions(self):
         """Discover sessions running Claude Code"""
@@ -81,11 +99,18 @@ class TmuxController:
             for window in session.windows:
                 for pane in window.panes:
                     if self.is_running_claude(pane):
+                        # Generate session name as hostname_dirname
+                        current_path = pane.current_path
+                        dirname = os.path.basename(current_path)
+                        session_name = f"{self.hostname}_{dirname}"
+                        
                         claude_sessions.append({
                             'session': session,
                             'pane': pane,
-                            'name': session.name,
-                            'current_path': pane.current_path
+                            'name': session_name,
+                            'tmux_session_name': session.name,
+                            'current_path': current_path,
+                            'dirname': dirname
                         })
         return claude_sessions
     
@@ -140,10 +165,23 @@ class CommandRouter:
         """Parse user input"""
         user_input = user_input.strip()
         
-        # Status query
-        if user_input.lower() in ['status', 'all sessions']:
+        # Status query (support multiple languages)
+        if user_input.lower() in ['status', 'all sessions', '状态', '所有会话']:
             return 'status_query', None, user_input
             
+        # Session switching patterns
+        switch_patterns = [
+            r'switch to (\w+)',
+            r'切换到(\w+)',
+            r'go to (\w+)',
+            r'切换到\s*(\w+)\s*目录'
+        ]
+        for pattern in switch_patterns:
+            match = re.match(pattern, user_input.lower())
+            if match:
+                session_id = match.group(1)
+                return 'session_command', session_id, ""
+        
         # Specified session: #sessionId command
         if user_input.startswith('#'):
             parts = user_input[1:].split(' ', 1)
@@ -168,6 +206,25 @@ class CommandRouter:
             else:
                 return "Please specify a session first (use #sessionName) or check status"
                 
+    def find_session(self, session_id):
+        """Fuzzy match session name"""
+        # Exact match first
+        for name in self.sessions.keys():
+            if name == session_id:
+                return name
+        
+        # Match by directory name
+        for name in self.sessions.keys():
+            if name.endswith(f"_{session_id}"):
+                return name
+        
+        # Partial match
+        for name in self.sessions.keys():
+            if session_id.lower() in name.lower():
+                return name
+        
+        return None
+    
     async def handle_session_command(self, session_id, command):
         """Handle session command"""
         # Fuzzy match session name
@@ -430,6 +487,45 @@ class VoiceClaudeController:
         except Exception as e:
             print(f"WebSocket error: {e}")
 ```
+
+## 💡 Implementation Requirements
+
+### Session Status Information
+
+When querying session status, the system should collect and display:
+
+```python
+{
+    'name': 'macbook_frontend',
+    'dirname': 'frontend',
+    'status': 'idle',  # idle/working/choice/editing/error
+    'git_info': {
+        'branch': 'main',
+        'has_changes': False,
+        'mr_status': 'No MR'  # or 'MR #123 open'
+    },
+    'last_summary': 'Completed React component generation',
+    'elapsed_time': None,  # or "2m 15s" if currently working
+    'current_path': '/Users/dev/projects/frontend'
+}
+```
+
+### Web Interface Design
+
+Minimalist single-page interface:
+- One input box at bottom
+- Output display area above
+- No sidebars, no tabs, no history
+- Real-time WebSocket connection
+- Mobile-responsive for remote access
+
+### Voice Interaction Design
+
+- **Input**: Whisper API for multilingual support
+- **Output**: TTS with language detection
+- **Context preservation**: Remember last active session
+- **Natural language**: Support variations of commands
+- **Number recognition**: "one", "1", "一" all map to "1"
 
 ## 🎯 MVP Implementation Roadmap
 
