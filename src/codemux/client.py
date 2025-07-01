@@ -61,9 +61,11 @@ class CodemuxClient:
         while self.running:
             try:
                 logger.info(f"Connecting to {self.server_url}...")
+
+                # Simple direct connection without proxy issues
                 async with websockets.connect(self.server_url) as websocket:
                     self.websocket = websocket
-                    logger.info("Connected to server")
+                    logger.info("Connected to server successfully")
 
                     # Authenticate if token provided
                     if self.auth_token:
@@ -291,7 +293,7 @@ async def main():
     )
 
     # Get server URL from command line or use default
-    server_url = sys.argv[1] if len(sys.argv) > 1 else "ws://localhost:8000/ws"
+    server_url = sys.argv[1] if len(sys.argv) > 1 else "ws://localhost:8000"
 
     client = CodemuxClient(server_url)
 
